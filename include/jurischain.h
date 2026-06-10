@@ -1,7 +1,7 @@
 #ifndef H_JURISCHAIN
 #define H_JURISCHAIN
 
-#define JURISCHAIN_VERSION "1.0.0"
+#define JURISCHAIN_VERSION "1.1.2"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -18,8 +18,12 @@
 #ifndef HASH_LEN
 #define HASH_LEN 32
 #endif
-  
 
+/*
+ * Header-only library: every function has internal linkage (static inline)
+ * so the header can be #included in multiple translation units without
+ * causing duplicate-symbol errors at link time.
+ */
 
 /* state context */
 typedef struct {
@@ -36,17 +40,7 @@ typedef struct {
 } jurischain_ctx_t;
 
 /* Compression function */
-void sha3_keccakf(uint64_t st[25]);
-
-/* OpenSSL - like interface */
-int sha3_init(sha3_ctx_t *c, int mdlen); /*  mdlen = hash output in bytes */
-int sha3_update(sha3_ctx_t *c, const void *data, size_t len);
-int sha3_final(void *md, sha3_ctx_t *c); /*  digest goes to md */
-
-/* compute a sha3 hash (md) of given byte length from "in" */
-void *sha3(const void *in, size_t inlen, void *md, int mdlen);
-
-void sha3_keccakf(uint64_t st[25]) {
+static inline void sha3_keccakf(uint64_t st[25]) {
   /* constants */
   const uint64_t keccakf_rndc[24] = {
       0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
@@ -129,8 +123,8 @@ void sha3_keccakf(uint64_t st[25]) {
 #endif
 }
 
-/*  Initialize the context for SHA3 */
-int sha3_init(sha3_ctx_t *c, int mdlen) {
+/*  Initialize the context for SHA3 (mdlen = hash output in bytes) */
+static inline int sha3_init(sha3_ctx_t *c, int mdlen) {
   int i = 0;
 
   for (i = 0; i < 25; i++) c->st.q[i] = 0;
@@ -142,7 +136,7 @@ int sha3_init(sha3_ctx_t *c, int mdlen) {
 }
 
 /*  update state with more data */
-int sha3_update(sha3_ctx_t *c, const void *data, size_t len) {
+static inline int sha3_update(sha3_ctx_t *c, const void *data, size_t len) {
   size_t i = 0;
   int j = 0;
 
@@ -159,8 +153,8 @@ int sha3_update(sha3_ctx_t *c, const void *data, size_t len) {
   return 1;
 }
 
-/*  finalize and output a hash */
-int sha3_final(void *md, sha3_ctx_t *c) {
+/*  finalize and output a hash (digest goes to md) */
+static inline int sha3_final(void *md, sha3_ctx_t *c) {
   int i = 0;
 
   c->st.b[c->pt] ^= 0x06;
@@ -175,7 +169,7 @@ int sha3_final(void *md, sha3_ctx_t *c) {
 }
 
 /*  compute a SHA-3 hash (md) of given byte length from "in" */
-void *sha3(const void *in, size_t inlen, void *md, int mdlen) {
+static inline void *sha3(const void *in, size_t inlen, void *md, int mdlen) {
   sha3_ctx_t sha3;
 
   memset(&sha3, 0, sizeof(sha3));
@@ -187,7 +181,7 @@ void *sha3(const void *in, size_t inlen, void *md, int mdlen) {
   return md;
 }
 
-void jurischain_gen(jurischain_ctx_t *challenge, uint8_t d, const void *seed, size_t inlen) {
+static inline void jurischain_gen(jurischain_ctx_t *challenge, uint8_t d, const void *seed, size_t inlen) {
   uint8_t rand_hash[HASH_LEN] = { 0, };
   if (!challenge || !seed || inlen == 0) return;
   memset(challenge, 0, sizeof(jurischain_ctx_t));
@@ -197,48 +191,60 @@ void jurischain_gen(jurischain_ctx_t *challenge, uint8_t d, const void *seed, si
   challenge->payload[HASH_LEN] = d;
 }
 
-jurischain_ctx_t *jurischain_init(void) {
+static inline jurischain_ctx_t *jurischain_init(void) {
     jurischain_ctx_t *ptr = (jurischain_ctx_t *)malloc(sizeof(jurischain_ctx_t));
     if (ptr) memset(ptr, 0, sizeof(jurischain_ctx_t));
     return ptr;
 }
 
-void jurischain_destroy(jurischain_ctx_t **ptr) {
+static inline void jurischain_destroy(jurischain_ctx_t **ptr) {
     if (!ptr || !*ptr) return;
     memset(*ptr, 0, sizeof(jurischain_ctx_t));
     free(*ptr);
     *ptr = NULL;
 }
 
-int jurischain_verify(jurischain_ctx_t *challenge) {
-  if (!challenge) return 0;
-  uint8_t hash[HASH_LEN] = { 0, },
-          d = 0,
-          hash_concat[HASH_LEN * 2] = { 0, },
+static inline int jurischain_verify(jurischain_ctx_t *challenge) {
+  uint8_t hash_concat[HASH_LEN * 2] = { 0, },
           response[HASH_LEN] = { 0, };
-  uint64_t mask = 0, *res64 = NULL, valid = 0, i = 0;
-  memcpy(hash, challenge->payload, HASH_LEN);
-  memcpy(&hash_concat[HASH_LEN], challenge->payload, HASH_LEN);
+  uint64_t res64[HASH_LEN / 8] = { 0, };
+  uint64_t mask = 0, valid = 1, i = 0;
+  uint8_t d = 0;
+
+  if (!challenge) return 0;
+
   memcpy(hash_concat, challenge->seed, HASH_LEN);
+  memcpy(&hash_concat[HASH_LEN], challenge->payload, HASH_LEN);
 
   d = challenge->payload[HASH_LEN];
 
   sha3(hash_concat, HASH_LEN * 2, response, HASH_LEN);
 
-  /*  checar se os primeiros bits estão corretos */
-  mask = 0xFFFFFFFFFFFFFFFF >> (64 - (d % 64));
-  res64 = (uint64_t *)response; /*  webassembly assumes little endian */
-  valid = 1;
+  /*
+   * Interpret the digest as little-endian 64-bit words. memcpy avoids the
+   * strict-aliasing and unaligned-access undefined behaviour that a raw
+   * (uint64_t *) cast over a byte buffer would introduce. WebAssembly and
+   * all supported native targets are little-endian.
+   */
+  memcpy(res64, response, HASH_LEN);
 
-  for (i = 0; i < (d / 64); i++) valid = (res64[i] == 0) ? valid : 0;
-  if ((d % 64) != 0) valid = ((res64[d / 64] & mask) == 0) ? valid : 0;
+  /* check that the first `d` bits are zero */
+  for (i = 0; i < (d / 64u); i++)
+    if (res64[i] != 0) valid = 0;
 
-  return valid;
+  if ((d % 64u) != 0) {
+    /* guard: shifting a 64-bit value by 64 is undefined behaviour, so this
+     * mask is only ever computed when (d % 64) is in the range 1..63 */
+    mask = (uint64_t)0xFFFFFFFFFFFFFFFFULL >> (64u - (d % 64u));
+    if ((res64[d / 64u] & mask) != 0) valid = 0;
+  }
+
+  return (int)valid;
 }
 
-int jurischain_try(jurischain_ctx_t *challenge) {
-  if (!challenge) return 0;
+static inline int jurischain_try(jurischain_ctx_t *challenge) {
   uint8_t rand_hash[HASH_LEN] = { 0, };
+  if (!challenge) return 0;
   sha3(challenge->seed, HASH_LEN, rand_hash, HASH_LEN);
   memcpy(challenge->seed, rand_hash, HASH_LEN);
 

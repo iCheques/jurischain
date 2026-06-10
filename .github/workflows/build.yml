@@ -3,6 +3,68 @@ name: Build & Test
 on: [push, pull_request]
 
 jobs:
+  native-core:
+    name: Native C core (sanitized)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build CLI (warnings as errors)
+        run: gcc src/cli.c -Iinclude -o jurischain -O2 -Wall -Wextra -Werror
+      - name: Run CLI
+        run: ./jurischain 8 CI_Seed
+      - name: Core test under UBSan + ASan
+        run: make test-c
+
+  native-php:
+    name: PHP extension
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+      - name: Build extension
+        run: |
+          cp include/jurischain.h bindings/php/jurischain.h
+          cd bindings/php
+          phpize
+          ./configure --enable-jurischain CFLAGS="-I$(pwd)"
+          make -j"$(nproc)"
+      - name: Run integration test
+        run: php -dextension=bindings/php/modules/jurischain.so -d assert.exception=1 tests/test_php.php
+      - name: Run phpt test
+        run: |
+          cd bindings/php
+          php run-tests.php -d extension="$(pwd)/modules/jurischain.so" -q tests/juschain.phpt
+
+  native-node:
+    name: Node native addon
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build addon
+        run: |
+          cd bindings/node
+          npm install
+      - name: Run integration test
+        run: node tests/test_node.js
+
+  python:
+    name: Python smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build native CLI
+        run: make cli
+      - name: Run smoke test
+        run: python3 tests/test_python.py
+
   build-asm:
     name: ASM.js Build
     runs-on: ubuntu-latest
