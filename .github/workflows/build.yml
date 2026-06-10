@@ -53,7 +53,12 @@ jobs:
             https://github.com/php/pie/releases/latest/download/pie.phar
           chmod +x /usr/local/bin/pie
       - name: Build extension via PIE
-        run: pie build
+        # Register the checkout as a local path repository, then build the
+        # package from it — the same phpize/configure/make pipeline users
+        # get from `pie install credithub/jurischain`.
+        run: |
+          pie repository:add path .
+          pie build "credithub/jurischain:*@dev"
 
   native-node:
     name: Node native addon
