@@ -22,7 +22,7 @@
 extern zend_module_entry jurischain_module_entry;
 #define phpext_jurischain_ptr &jurischain_module_entry
 
-#define PHP_JURISCHAIN_VERSION "1.1.2"
+#define PHP_JURISCHAIN_VERSION "1.1.3"
 
 #if defined(ZTS) && defined(COMPILE_DL_JURISCHAIN)
 ZEND_TSRMLS_CACHE_EXTERN()
