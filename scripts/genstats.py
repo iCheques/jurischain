@@ -14,11 +14,11 @@ STATS_DIR = Path('stats')
 
 def calculate(seed: bytes) -> List[Tuple[int, int]]:
     result: List[Tuple[int, int]] = []
-    seed_str = str(seed)
+    seed_str = seed.hex()
 
     for i in range(1, MAX_DIFFICULTY + 1):
         print(f"[*] Seed: {seed_str} [{i}/{MAX_DIFFICULTY}]")
-        command = ["./sha3", str(i), str(seed)]
+        command = ["./jurischain", str(i), seed_str]
 
         res = subprocess.check_output(command, timeout=300).splitlines()
         diff = int(str(res[0]).split(':')[1].strip("'"))

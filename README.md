@@ -215,6 +215,18 @@ cd jurischain
 
 PRs welcome. Please ensure all tests pass before submitting.
 
+## Releasing
+
+Publishing to npm is automated by [`release.yml`](.github/workflows/release.yml):
+
+1. Bump the version in `package.json` (and `bindings/node/package.json` if the addon changed)
+2. Merge to `master`, then tag: `git tag v1.x.y && git push origin v1.x.y`
+3. CI builds the bundle, runs the browser test suite, publishes both packages
+   (skipping any whose version is already on the registry) and creates a GitHub Release
+
+Requires the `NPM_TOKEN` repository secret (npm automation token with publish
+rights to the `@credithub` scope).
+
 ## License
 
 [MIT](LICENSE) — created by BIPBOP, maintained by [Lucas Fernando Amorim](https://github.com/lfamorim) and [CreditHub](https://credithub.com.br).

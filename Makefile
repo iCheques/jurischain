@@ -8,11 +8,17 @@ INCDIR   := include
 DISTDIR  := dist
 WEBDIR   := bindings/browser
 
-CFLAGS   := -O3 -march=native -frename-registers -fassociative-math -freciprocal-math -fno-signed-zeros -fno-trapping-math
-EMCCFLAGS := -O3 -I$(INCDIR) -fassociative-math -freciprocal-math -fno-signed-zeros -fno-trapping-math
+# SHA3 is an integer-only workload, so floating-point fast-math flags are
+# pointless here. -march=native is intentionally omitted: it produces
+# CPU-specific binaries that fault when run on a different machine. Pass
+# `make cli CFLAGS="-O3 -march=native"` locally if you want a native build.
+CFLAGS   := -O3 -Wall -Wextra
+EMCCFLAGS := -O3 -I$(INCDIR)
 
 CC   := gcc
 EMCC := emcc
+
+.PHONY: all cli test-c js js-module bundle cli-js install clean
 
 all: js bundle cli-js
 
@@ -21,6 +27,12 @@ $(DISTDIR):
 
 cli:
 	$(CC) $(SRCDIR)/cli.c -I$(INCDIR) -o jurischain $(CFLAGS)
+
+# Native core test, hardened with UndefinedBehavior + Address sanitizers.
+test-c:
+	$(CC) tests/test_c.c -I$(INCDIR) -o test_c -O1 -Wall -Wextra \
+		-fsanitize=undefined,address -fno-sanitize-recover=all
+	./test_c
 
 js: $(DISTDIR)
 	$(EMCC) $(SRCDIR)/browser.c -o $(DISTDIR)/jurischain.js -s WASM=0 --memory-init-file 0 $(EMCCFLAGS)
@@ -45,5 +57,6 @@ install:
 
 clean:
 	rm -rf ./jurischain
+	rm -rf ./test_c
 	rm -rf ./$(DISTDIR)
 	rm -rf *.gcda

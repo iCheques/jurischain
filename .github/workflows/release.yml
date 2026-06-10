@@ -1,0 +1,114 @@
+name: Release
+
+# Publishes to npm when a version tag (v*) is pushed.
+# Requires the NPM_TOKEN repository secret (npm automation token with
+# publish rights to the @credithub scope).
+#
+# Both publish jobs are idempotent: if the version in package.json is
+# already on the registry, the job skips publishing. This lets a single
+# tag release either package independently — just bump the version of
+# the package you want to ship.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish-browser:
+    name: Publish @credithub/jurischain (browser bundle)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Build ASM.js bundle
+        run: make all
+      - name: Install dependencies
+        run: npm ci
+      - name: Transpile + minify bundle
+        run: npm run minify
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Browser test suite
+        run: npx playwright test --project=browser
+      - name: Check if version is already published
+        id: check
+        run: |
+          PKG=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          if npm view "$PKG@$VER" version >/dev/null 2>&1; then
+            echo "Version $PKG@$VER already on npm — skipping publish."
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish to npm
+        if: steps.check.outputs.published == 'false'
+        # Scripts are skipped because the build/minify/test steps above
+        # already did everything prepublishOnly would do (and the full
+        # playwright e2e project needs Docker, which is covered by CI).
+        run: npm publish --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-node:
+    name: Publish @credithub/jurischain-node (native addon)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Build addon
+        run: npm install
+        working-directory: bindings/node
+      - name: Run integration test
+        run: node tests/test_node.js
+      - name: Copy header into package (prepack)
+        run: npm run prepack
+        working-directory: bindings/node
+      - name: Check if version is already published
+        id: check
+        working-directory: bindings/node
+        run: |
+          PKG=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          if npm view "$PKG@$VER" version >/dev/null 2>&1; then
+            echo "Version $PKG@$VER already on npm — skipping publish."
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish to npm
+        if: steps.check.outputs.published == 'false'
+        # prepack already ran above; --ignore-scripts keeps npm from
+        # running the install script (node-gyp rebuild) during packing.
+        run: npm publish --access public --ignore-scripts
+        working-directory: bindings/node
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    needs: [publish-browser, publish-node]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create release with generated notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes
