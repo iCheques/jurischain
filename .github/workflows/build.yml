@@ -23,12 +23,11 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-      - name: Build extension
+      - name: Build extension (self-contained, as PIE does)
         run: |
-          cp include/jurischain.h bindings/php/jurischain.h
           cd bindings/php
           phpize
-          ./configure --enable-jurischain CFLAGS="-I$(pwd)"
+          ./configure
           make -j"$(nproc)"
       - name: Run integration test
         run: php -dextension=bindings/php/modules/jurischain.so -d assert.exception=1 tests/test_php.php
@@ -36,6 +35,25 @@ jobs:
         run: |
           cd bindings/php
           php run-tests.php -d extension="$(pwd)/modules/jurischain.so" -q tests/juschain.phpt
+
+  pie-package:
+    name: PIE package (PHP extension)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer
+      - name: Validate composer.json
+        run: composer validate
+      - name: Download PIE
+        run: |
+          curl -fsSL -o /usr/local/bin/pie \
+            https://github.com/php/pie/releases/latest/download/pie.phar
+          chmod +x /usr/local/bin/pie
+      - name: Build extension via PIE
+        run: pie build
 
   native-node:
     name: Node native addon
