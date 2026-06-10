@@ -60,6 +60,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
       - name: Build native CLI
         run: make cli
       - name: Run smoke test
