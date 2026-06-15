@@ -162,8 +162,13 @@
 
       try {
         const t0 = performance.now();
+        /* DEMO ONLY: in production generate the seed server-side with a
+         * CSPRNG (e.g. crypto.randomBytes in Node, random_bytes in PHP).
+         * Never use timestamps or counters — they are predictable. */
+        const seedBytes = crypto.getRandomValues(new Uint8Array(16));
+        const seed = Array.from(seedBytes).map(b => b.toString(16).padStart(2, '0')).join('');
         const result = await solveJurischain({
-          seed: 'DemoSeed_' + Date.now(),
+          seed,
           difficulty: 10,
           timeout: 30000,
         });

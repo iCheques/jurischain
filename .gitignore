@@ -69,3 +69,4 @@ test-results/
 playwright-report/
 *.tgz
 .DS_Store
+test_c
