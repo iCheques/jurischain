@@ -183,7 +183,7 @@ static inline void *sha3(const void *in, size_t inlen, void *md, int mdlen) {
 
 static inline void jurischain_gen(jurischain_ctx_t *challenge, uint8_t d, const void *seed, size_t inlen) {
   uint8_t rand_hash[HASH_LEN] = { 0, };
-  if (!challenge || !seed || inlen == 0) return;
+  if (!challenge || !seed || inlen == 0 || d == 0) return;
   memset(challenge, 0, sizeof(jurischain_ctx_t));
   sha3(seed, inlen, rand_hash, HASH_LEN);
   memcpy(challenge->seed, rand_hash, sizeof(rand_hash));
@@ -213,10 +213,13 @@ static inline int jurischain_verify(jurischain_ctx_t *challenge) {
 
   if (!challenge) return 0;
 
+  d = challenge->payload[HASH_LEN];
+
+  /* difficulty 0 is a vacuous proof — any response passes; treat as invalid */
+  if (d == 0) return 0;
+
   memcpy(hash_concat, challenge->seed, HASH_LEN);
   memcpy(&hash_concat[HASH_LEN], challenge->payload, HASH_LEN);
-
-  d = challenge->payload[HASH_LEN];
 
   sha3(hash_concat, HASH_LEN * 2, response, HASH_LEN);
 

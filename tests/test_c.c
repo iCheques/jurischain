@@ -111,12 +111,33 @@ static void test_null_safety(void) {
   check(jurischain_try(NULL) == 0, "try(NULL) == 0");
 }
 
+static void test_zero_difficulty(void) {
+  /* d == 0 is a vacuous proof: with no required zero bits, ANY response
+   * trivially satisfies the check. The core must reject it rather than
+   * accept arbitrary input. gen() must also refuse to build such a
+   * challenge. */
+  jurischain_ctx_t c;
+  printf("zero-difficulty rejection:\n");
+
+  /* gen() leaves the context untouched for d == 0; verifying a zeroed
+   * context must fail. */
+  memset(&c, 0, sizeof(c));
+  jurischain_gen(&c, 0, "AnySeed", 7);
+  check(jurischain_verify(&c) == 0, "gen(d=0) does not build a valid challenge");
+
+  /* Even a hand-crafted d == 0 payload must not verify. */
+  memset(&c, 0, sizeof(c));
+  c.payload[HASH_LEN] = 0;
+  check(jurischain_verify(&c) == 0, "verify rejects d=0 directly");
+}
+
 int main(void) {
   printf("=== JurisChain core C test ===\n");
   test_sha3_vectors();
   test_roundtrip();
   test_tamper();
   test_null_safety();
+  test_zero_difficulty();
 
   if (failures == 0) {
     printf("\n=== All core C tests passed! ===\n");
