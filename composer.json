@@ -1,0 +1,28 @@
+{
+    "name": "credithub/jurischain",
+    "description": "SHA3-256 Proof-of-Work captcha PHP extension. Challenges terminals instead of humans — no tracking, no third parties.",
+    "type": "php-ext",
+    "license": "MIT",
+    "keywords": ["captcha", "proof-of-work", "sha3", "extension"],
+    "homepage": "https://github.com/iCheques/jurischain",
+    "authors": [
+        {
+            "name": "CreditHub",
+            "email": "tech@credithub.com.br"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/iCheques/jurischain/issues",
+        "source": "https://github.com/iCheques/jurischain"
+    },
+    "require": {
+        "php": ">=8.1"
+    },
+    "php-ext": {
+        "extension-name": "jurischain",
+        "support-zts": true,
+        "support-nts": true,
+        "build-path": "bindings/php",
+        "configure-options": []
+    }
+}

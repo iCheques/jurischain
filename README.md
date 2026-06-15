@@ -138,6 +138,19 @@ console.log(verifier.verify());  // true
 
 ### PHP 8 — Extension
 
+Install with [PIE](https://github.com/php/pie) (the official PHP extension installer, successor to PECL):
+
+```bash
+pie install credithub/jurischain
+```
+
+Or build from source:
+
+```bash
+cd bindings/php
+phpize && ./configure && make && sudo make install
+```
+
 ```php
 // Generate + solve
 $challenge = new Jurischain($difficulty, $seed);
