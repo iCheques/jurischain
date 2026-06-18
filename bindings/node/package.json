@@ -11,6 +11,8 @@
     }
   },
   "files": [
+    "README.md",
+    "LICENSE",
     "index.js",
     "index.d.ts",
     "main.cpp",
@@ -18,7 +20,7 @@
     "binding.gyp"
   ],
   "scripts": {
-    "prepack": "node -e \"require('fs').copyFileSync('../../include/jurischain.h','jurischain.h')\"",
+    "prepack": "node -e \"const fs=require('fs');fs.copyFileSync('../../include/jurischain.h','jurischain.h');fs.copyFileSync('../../LICENSE','LICENSE')\"",
     "install": "node-gyp rebuild",
     "rebuild": "node-gyp rebuild",
     "test": "node -e \"const { Jurischain } = require('.'); const j = new Jurischain(1, 'test'); console.log('OK:', j.readChallenge());\""
