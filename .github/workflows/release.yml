@@ -1,7 +1,7 @@
 name: Release
 
 # Publishes to npm when a version tag (v*) is pushed.
-# Requires the NPM_TOKEN repository secret (npm automation token with
+# Requires the NODE_AUTH_TOKEN repository secret (npm automation token with
 # publish rights to the @credithub scope).
 #
 # Both publish jobs are idempotent: if the version in package.json is
@@ -56,7 +56,7 @@ jobs:
         # playwright e2e project needs Docker, which is covered by CI).
         run: npm publish --access public --ignore-scripts
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
 
   publish-node:
     name: Publish @credithub/jurischain-node (native addon)
@@ -94,7 +94,7 @@ jobs:
         run: npm publish --access public --ignore-scripts
         working-directory: bindings/node
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
 
   github-release:
     name: Create GitHub Release
