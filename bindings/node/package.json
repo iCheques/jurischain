@@ -1,6 +1,6 @@
 {
   "name": "@credithub/jurischain-node",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Native Node.js binding for JurisChain Proof-of-Work CAPTCHA. Challenges terminals instead of humans to mitigate DDoS attacks.",
   "main": "index.js",
   "types": "index.d.ts",
