@@ -35,10 +35,10 @@ test-c:
 	./test_c
 
 js: $(DISTDIR)
-	$(EMCC) $(SRCDIR)/browser.c -o $(DISTDIR)/jurischain.js -s WASM=0 -s SINGLE_FILE=1 $(EMCCFLAGS)
+	$(EMCC) $(SRCDIR)/browser.c -o $(DISTDIR)/jurischain.js -s WASM=0 -s SINGLE_FILE=1 -s 'EXPORTED_RUNTIME_METHODS=["stringToUTF8","UTF8ToString"]' $(EMCCFLAGS)
 
 js-module: $(DISTDIR)
-	$(EMCC) $(SRCDIR)/browser.c -o $(DISTDIR)/jurischain-module.js -s WASM=0 -s SINGLE_FILE=1 -s MODULARIZE=1 -s 'EXPORT_NAME=_JurischainASM' $(EMCCFLAGS)
+	$(EMCC) $(SRCDIR)/browser.c -o $(DISTDIR)/jurischain-module.js -s WASM=0 -s SINGLE_FILE=1 -s MODULARIZE=1 -s 'EXPORT_NAME=_JurischainASM' -s 'EXPORTED_RUNTIME_METHODS=["stringToUTF8","UTF8ToString"]' $(EMCCFLAGS)
 
 bundle: js-module
 	@echo "Bundling $(DISTDIR)/jurischain-bundle.js..."

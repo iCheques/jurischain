@@ -59,7 +59,7 @@ CMD ["node", "/src/tests/test_node.js"]
 FROM python:3.13-slim AS test-python
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc make && \
+    gcc libc6-dev make && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
