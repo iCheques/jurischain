@@ -1,7 +1,7 @@
 #ifndef H_JURISCHAIN
 #define H_JURISCHAIN
 
-#define JURISCHAIN_VERSION "1.1.3"
+#define JURISCHAIN_VERSION "1.1.4"
 
 #include <stdlib.h>
 #include <stdint.h>
