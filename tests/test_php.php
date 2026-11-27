@@ -112,4 +112,67 @@ $lc->setResponse(strtolower($solution));
 assert($lc->verify() === true, "lowercase hex should verify correctly");
 echo "OK\n";
 
+// Test 13: Golden PoW vector matches core/Node/CLI
+echo "[13] Testing golden PoW vector... ";
+assert(
+    $solution === "C19F75A5F960505DC5500675B0C6FD673B3047B040A17D47928599565E587065",
+    "Solution must match cross-platform golden vector"
+);
+echo "OK\n";
+
+// Test 14: setResponse() atomicity on invalid hex
+echo "[14] Testing setResponse() preserves state on invalid input... ";
+$atomic = new Jurischain(10, "TestSeed");
+$atomic->setResponse($solution);
+foreach (["+1" . str_repeat("00", 31), "0x" . str_repeat("00", 31), "GG" . str_repeat("00", 31)] as $badHex) {
+    $threw = false;
+    try {
+        $atomic->setResponse($badHex);
+    } catch (ValueError $e) {
+        $threw = true;
+    }
+    assert($threw === true, "Invalid hex '$badHex' should throw ValueError");
+}
+assert($atomic->verify() === true, "Failed setResponse() must not corrupt valid state");
+echo "OK\n";
+
+// Test 15: Serialization / unserialization blocked
+echo "[15] Testing serialization/unserialization is disallowed... ";
+$serThrew = false;
+try {
+    serialize($challenge);
+} catch (Exception $e) {
+    $serThrew = true;
+}
+assert($serThrew === true, "serialize() should throw Exception");
+$unserThrew = false;
+try {
+    unserialize('O:10:"Jurischain":0:{}');
+} catch (Exception $e) {
+    $unserThrew = true;
+}
+assert($unserThrew === true, "unserialize() should throw Exception");
+echo "OK\n";
+
+// Test 16: Cloning blocked
+echo "[16] Testing cloning is disallowed... ";
+$cloneThrew = false;
+try {
+    $copy = clone $challenge;
+} catch (Error $e) {
+    $cloneThrew = true;
+}
+assert($cloneThrew === true, "clone should throw Error");
+echo "OK\n";
+
+// Test 17: Tamper rejection (wrong seed & wrong difficulty)
+echo "[17] Testing tamper rejection... ";
+$wrongSeed = new Jurischain(10, "OtherSeed");
+$wrongSeed->setResponse($solution);
+assert($wrongSeed->verify() === false, "Wrong seed must fail verification");
+$wrongDiff = new Jurischain(24, "TestSeed");
+$wrongDiff->setResponse($solution);
+assert($wrongDiff->verify() === false, "Wrong difficulty must fail verification");
+echo "OK\n";
+
 echo "\n=== All PHP tests passed! ===\n";

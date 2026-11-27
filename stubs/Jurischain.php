@@ -6,7 +6,7 @@
  * Jurischain C extension. It is NOT loaded at runtime.
  *
  * @package Jurischain
- * @version 1.0.0
+ * @version 1.1.3
  */
 
 /**
@@ -40,7 +40,7 @@ final class Jurischain
      *                           the solver and verifier sides.
      *
      * @throws \ValueError If difficulty is outside 1–255 range.
-     * @throws \ValueError If seed is an empty string.
+     * @throws \ValueError If seed is an empty string or exceeds 1024 bytes.
      */
     public function __construct(int $difficulty, string $seed) {}
 

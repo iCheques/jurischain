@@ -14,16 +14,9 @@
  *   const solution = await solveJurischain({ seed: 'abc123', difficulty: 10 });
  *   console.log('Solved:', solution);
  */
-function solveJurischain({ seed, difficulty, timeout = 0 } = {}) {
-  if (typeof seed !== 'string' || seed.length === 0) {
-    return Promise.reject(new TypeError('seed must be a non-empty string'));
-  }
+let _solveQueue = Promise.resolve();
 
-  const diff = Number(difficulty);
-  if (!Number.isInteger(diff) || diff < 1 || diff > 255) {
-    return Promise.reject(new RangeError('difficulty must be an integer between 1 and 255'));
-  }
-
+function _solve(seed, diff, timeout) {
   window.jurischain = Object.freeze({
     seed,
     difficulty: String(diff),
@@ -32,17 +25,19 @@ function solveJurischain({ seed, difficulty, timeout = 0 } = {}) {
   return new Promise((resolve, reject) => {
     let settled = false;
     let timerId;
+    const script = document.createElement('script');
+
+    const cleanup = () => {
+      document.removeEventListener('jurischain', onSolved);
+      if (timerId) clearTimeout(timerId);
+      if (script.parentNode) script.parentNode.removeChild(script);
+    };
 
     const onSolved = (event) => {
       if (settled) return;
       settled = true;
       cleanup();
       resolve(event.detail);
-    };
-
-    const cleanup = () => {
-      document.removeEventListener('jurischain', onSolved);
-      if (timerId) clearTimeout(timerId);
     };
 
     document.addEventListener('jurischain', onSolved, { once: true });
@@ -56,7 +51,6 @@ function solveJurischain({ seed, difficulty, timeout = 0 } = {}) {
       }, timeout);
     }
 
-    const script = document.createElement('script');
     script.src = './dist/jurischain.js';
     script.onerror = () => {
       if (settled) return;
@@ -66,6 +60,46 @@ function solveJurischain({ seed, difficulty, timeout = 0 } = {}) {
     };
     document.body.appendChild(script);
   });
+}
+
+function solveJurischain({ seed, difficulty, timeout = 0 } = {}) {
+  if (typeof seed !== 'string' || seed.length === 0) {
+    return Promise.reject(new TypeError('seed must be a non-empty string'));
+  }
+
+  if (
+    typeof difficulty === 'boolean' ||
+    difficulty === null ||
+    difficulty === '' ||
+    Array.isArray(difficulty)
+  ) {
+    return Promise.reject(new RangeError('difficulty must be an integer between 1 and 255'));
+  }
+
+  const diff = Number(difficulty);
+  if (!Number.isInteger(diff) || diff < 1 || diff > 255) {
+    return Promise.reject(new RangeError('difficulty must be an integer between 1 and 255'));
+  }
+
+  if (
+    typeof timeout === 'boolean' ||
+    timeout === null ||
+    timeout === '' ||
+    Array.isArray(timeout) ||
+    !Number.isFinite(Number(timeout)) ||
+    Number(timeout) < 0
+  ) {
+    return Promise.reject(new RangeError('timeout must be a non-negative finite number'));
+  }
+
+  const normalizedTimeout = Number(timeout);
+
+  _solveQueue = _solveQueue.then(
+    () => _solve(seed, diff, normalizedTimeout),
+    () => _solve(seed, diff, normalizedTimeout)
+  );
+
+  return _solveQueue;
 }
 
 // UMD export

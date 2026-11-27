@@ -108,7 +108,7 @@ PHP_METHOD(Jurischain, getChallenge) {
   for (int i = 0; i < HASH_LEN; i++) {
     snprintf(str + (i * 2), 3, "%02hhX", intern->ctx.seed[i]);
   }
-  RETURN_STRING(str);
+  RETURN_STRINGL(str, HASH_LEN * 2);
 }
 
 PHP_METHOD(Jurischain, setResponse) {
@@ -181,7 +181,7 @@ PHP_MINIT_FUNCTION(jurischain) {
   INIT_CLASS_ENTRY(ce, "Jurischain", jurischain_methods);
   jurischain_ce = zend_register_internal_class(&ce);
   jurischain_ce->create_object = jurischain_create;
-  jurischain_ce->ce_flags |= ZEND_ACC_FINAL;
+  jurischain_ce->ce_flags |= ZEND_ACC_FINAL | ZEND_ACC_NOT_SERIALIZABLE;
 
   memcpy(&jurischain_handlers, &std_object_handlers, sizeof(zend_object_handlers));
   jurischain_handlers.offset = XtOffsetOf(jurischain_obj_t, std);

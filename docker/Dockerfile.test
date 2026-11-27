@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 # Stage: PHP 8 Extension Build + Test
 # -----------------------------------------------------------------------------
-FROM php:8.3-cli AS test-php
+FROM php:8.4-cli AS test-php
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc make autoconf && \
@@ -35,7 +35,7 @@ CMD ["php", "-d", "assert.exception=1", "/src/tests/test_php.php"]
 # -----------------------------------------------------------------------------
 # Stage: Node.js Native Addon Build + Test
 # -----------------------------------------------------------------------------
-FROM node:20-slim AS test-node
+FROM node:22-slim AS test-node
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ && \
@@ -47,7 +47,7 @@ COPY bindings/node/ /src/bindings/node/
 COPY include/jurischain.h /src/bindings/node/jurischain.h
 
 WORKDIR /src/bindings/node
-RUN npm install
+RUN npm ci
 
 COPY tests/test_node.js /src/tests/test_node.js
 
@@ -56,10 +56,10 @@ CMD ["node", "/src/tests/test_node.js"]
 # -----------------------------------------------------------------------------
 # Stage: Python Smoke Test
 # -----------------------------------------------------------------------------
-FROM python:3.12-slim AS test-python
+FROM python:3.13-slim AS test-python
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc make nodejs npm && \
+    gcc libc6-dev make && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
@@ -69,11 +69,10 @@ COPY src/cli.c /src/src/cli.c
 COPY Makefile /src/
 COPY scripts/genstats.py /src/scripts/genstats.py
 COPY requirements.txt /src/
-COPY dist/ /src/dist/
 COPY tests/test_python.py /src/tests/test_python.py
 
-RUN make cli CFLAGS="-O3" || echo "Native CLI build skipped (may need specific arch flags)"
+RUN make cli
 
-RUN pip install --no-cache-dir matplotlib
+RUN pip install --no-cache-dir -r requirements.txt
 
 CMD ["python3", "/src/tests/test_python.py"]

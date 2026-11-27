@@ -20,26 +20,67 @@ and the PHP extension track their own version numbers, called out where relevant
   `pie.phar`.
 - Project documentation: `CHANGELOG.md`, `HISTORY.md`, `SECURITY.md`, and
   `CONTRIBUTING.md`.
+- GitHub CodeQL static analysis workflow (`.github/workflows/codeql.yml`),
+  Dependabot configuration (`.github/dependabot.yml`), and `.github/CODEOWNERS`.
+- Browser Playwright test suite and TypeScript typecheck wired directly into
+  pull request CI (`build.yml`).
+- npm provenance attestation (`--provenance`) in `release.yml`.
 
 ### Changed
 - `bindings/php/config.m4` now defaults the extension to enabled and resolves the
   core header via `PHP_ADD_INCLUDE(../../include)`, so a plain
   `phpize && ./configure && make` builds from a checkout with no manual flags.
+- **Node binding:** registered as a context-aware addon
+  (`NAN_MODULE_WORKER_ENABLED`) so `@credithub/jurischain-node` can run safely
+  inside Node.js `worker_threads`, and upgraded `nan` (`^2.30.0`) and
+  `node-gyp` (`^12.4.0`) with a regenerated `package-lock.json` (0 audit
+  vulnerabilities).
+- **Browser build:** replaced removed Emscripten `--memory-init-file 0` flag
+  with `-s SINGLE_FILE=1`, updated Docker images (`emscripten/emsdk:7.0.1`,
+  `nginxinc/nginx-unprivileged:alpine`, `php:8.4-cli`, `node:22-slim`,
+  `python:3.13-slim`), and pinned GitHub Actions to full commit SHAs with
+  explicit least-privilege permissions.
+- **Dependencies:** removed unreferenced legacy SauceLabs/Jest/ngrok/Selenium
+  devDependencies and files, upgraded Babel, Terser, Playwright, `serve`, and
+  TypeScript (0 audit vulnerabilities across both root and `bindings/node`).
+- **Docs & metadata:** corrected broken `github.com/credithub/jurischain` URLs
+  to `github.com/iCheques/jurischain` and `NPM_TOKEN` references to
+  `NODE_AUTH_TOKEN`.
 
 ### Security
 - **Core:** closed the vacuous-proof footgun — `jurischain_verify` now returns
   `0` for `difficulty == 0` (previously any response satisfied a zero-difficulty
-  puzzle), and `jurischain_gen` refuses to build such a challenge.
-- **CLI:** clamp the requested difficulty into `1..255` before narrowing to
-  `uint8_t`. Previously `256` wrapped to `0` (and `257` to `1`); combined with
-  the `d == 0` fix that wrapped value would have looped forever.
-- **Demo:** `examples/web/index.html` now derives its seed from
-  `crypto.getRandomValues` instead of a timestamp, with a comment stating that
-  production seeds must be generated server-side with a CSPRNG.
+  puzzle), `jurischain_gen` now zeroes the context first so uninitialized stack
+  structs are never left with garbage on invalid input, `jurischain_try` rejects
+  `d == 0` early, and `sha3*` helpers validate NULL/bounds inputs.
+- **CLI:** replaced `atoi` with validated `strtol` clamping into `1..255` before
+  narrowing to `uint8_t`, rejected empty seeds (which previously caused an
+  infinite loop over uninitialized memory), and switched `Tries` format to
+  portable `%zu`.
+- **Node binding:** replaced `sscanf` hex parsing with strict nibble parsing and
+  atomic commit (rejecting whitespace, signs, and `0x` prefixes without
+  corrupting state on error), added 1024-byte max seed length DoS protection
+  matching the PHP extension, guarded non-finite/float difficulties before
+  integer conversion (eliminating C++ UB), and enforced V8 `Signature` receiver
+  checks so invalid `this` bindings throw `TypeError` instead of crashing.
+- **PHP extension:** marked `Jurischain` as `ZEND_ACC_NOT_SERIALIZABLE` so
+  `serialize()` / `unserialize()` cannot bypass `__construct()`.
+- **Browser:** eliminated `eval()` (`emscripten_run_script_*`) in `src/browser.c`
+  in favor of `EM_JS` + `stringToUTF8` (compatible with strict CSP without
+  `'unsafe-eval'`), added `cancel_solve()` so timed-out challenges stop their
+  `requestAnimationFrame` loop and cannot emit stale events into subsequent
+  solves, and hardened input validation for `difficulty` and `timeout`.
+- **Demo & nginx:** removed third-party Google Fonts requests from
+  `examples/web/index.html`, replaced `innerHTML` interpolation with safe DOM
+  APIs, added `server_tokens off`, CSP, and consistent security headers across
+  static asset locations in `docker/nginx.conf`.
+- **Repository:** removed stale pre-1.1.3 compiled binaries from `dist/` (which
+  were still tracked despite `.gitignore` and predated the `d == 0` fix).
 
 ### Fixed
-- Added a sanitized regression test (`tests/test_c.c`) covering the
-  zero-difficulty rejection.
+- Added sanitized C, Node, PHP, and Browser regression tests covering all
+  hardening fixes plus cross-platform golden PoW vector verification.
+- Fixed detached DOM mutation bug in `examples/web/index.html`.
 
 ## [1.1.3] - 2026-06-10
 

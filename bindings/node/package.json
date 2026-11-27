@@ -27,7 +27,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/credithub/jurischain.git"
+    "url": "git+https://github.com/iCheques/jurischain.git"
   },
   "keywords": [
     "captcha",
@@ -38,17 +38,17 @@
   "author": "CreditHub <tech@credithub.com.br>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/credithub/jurischain/issues"
+    "url": "https://github.com/iCheques/jurischain/issues"
   },
   "engines": {
     "node": ">=14.0.0"
   },
   "dependencies": {
     "bindings": "^1.5.0",
-    "nan": "^2.19.0"
+    "nan": "^2.30.0"
   },
   "devDependencies": {
-    "node-gyp": "^10.0.0"
+    "node-gyp": "^12.4.0"
   },
-  "homepage": "https://github.com/credithub/jurischain#readme"
+  "homepage": "https://github.com/iCheques/jurischain#readme"
 }

@@ -1,5 +1,6 @@
 const { test, expect } = require('@playwright/test');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
+const http = require('http');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -8,12 +9,15 @@ const ROOT = path.resolve(__dirname, '../..');
 
 // ─── Helper: run PHP inside the test-php Docker container ───
 function dockerPhp(script, args = []) {
-  const cmd = [
-    'docker', 'compose', '--profile', 'test',
-    'run', '--rm', '-T', 'test-php',
-    'php', `/src/tests/e2e/${script}`, ...args,
-  ].join(' ');
-  const out = execSync(cmd, { cwd: ROOT, timeout: 60000 }).toString().trim();
+  const out = execFileSync(
+    'docker',
+    [
+      'compose', '--profile', 'test',
+      'run', '--rm', '-T', 'test-php',
+      'php', `/src/tests/e2e/${script}`, ...args,
+    ],
+    { cwd: ROOT, timeout: 60000 }
+  ).toString().trim();
   return JSON.parse(out);
 }
 
@@ -103,15 +107,18 @@ test.describe('E2E: Fresh npm package install', () => {
 
   test.beforeAll(async () => {
     // Pack the current project (skips prepublishOnly via --ignore-scripts)
-    const packOut = execSync('npm pack --ignore-scripts 2>&1', { cwd: ROOT }).toString().trim();
+    const packOut = execFileSync('npm', ['pack', '--ignore-scripts'], {
+      cwd: ROOT,
+      encoding: 'utf8',
+    }).trim();
     const tgzName = packOut.split('\n').pop();
     tarball = path.join(ROOT, tgzName);
     expect(fs.existsSync(tarball)).toBe(true);
 
     // Create temp project and install the tarball
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jurischain-e2e-'));
-    execSync('npm init -y', { cwd: tmpDir });
-    execSync(`npm install "${tarball}"`, { cwd: tmpDir });
+    execFileSync('npm', ['init', '-y'], { cwd: tmpDir });
+    execFileSync('npm', ['install', tarball], { cwd: tmpDir });
 
     // Create a test HTML that loads from node_modules
     const html = `<!DOCTYPE html>
@@ -139,16 +146,27 @@ test.describe('E2E: Fresh npm package install', () => {
   });
 
   test('bundle from installed package solves challenge', async ({ page }) => {
-    const express = require('express');
-    const app = express();
-    app.use(express.static(tmpDir));
-    const server = await new Promise(resolve => {
-      const s = app.listen(0, () => resolve(s));
+    const mimeTypes = { '.html': 'text/html', '.js': 'application/javascript' };
+    const rootReal = fs.realpathSync(tmpDir);
+    const server = await new Promise((resolve) => {
+      const s = http.createServer((req, res) => {
+        const reqPath = decodeURIComponent((req.url || '/').split('?')[0]);
+        const resolved = path.resolve(rootReal, '.' + reqPath);
+        if (!resolved.startsWith(rootReal + path.sep) || !fs.existsSync(resolved)) {
+          res.writeHead(404);
+          res.end('Not Found');
+          return;
+        }
+        const ext = path.extname(resolved);
+        res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
+        fs.createReadStream(resolved).pipe(res);
+      });
+      s.listen(0, '127.0.0.1', () => resolve(s));
     });
     const port = server.address().port;
 
     try {
-      await page.goto(`http://localhost:${port}/index.html`);
+      await page.goto(`http://127.0.0.1:${port}/index.html`);
       await page.waitForFunction(
         () => document.getElementById('status')?.textContent === 'Ready',
         null, { timeout: 5000 }

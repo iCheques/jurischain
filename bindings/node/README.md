@@ -2,7 +2,7 @@
 
 # @credithub/jurischain-node
 
-**Native Node.js binding for [JurisChain](https://github.com/credithub/jurischain) — a SHA3-256 Proof-of-Work CAPTCHA.**
+**Native Node.js binding for [JurisChain](https://github.com/iCheques/jurischain) — a SHA3-256 Proof-of-Work CAPTCHA.**
 Challenge the *terminals*, not the *humans*. No tracking, no third parties, no image grids.
 
 [![npm](https://img.shields.io/npm/v/@credithub/jurischain-node?logo=npm&color=cb3837)](https://www.npmjs.com/package/@credithub/jurischain-node)
@@ -95,7 +95,7 @@ Requires **Node.js ≥ 14**.
 4. **Server** verifies in O(1).
 
 Higher difficulty = exponentially more work for the client, linearly tunable by
-the server. See the [main project README](https://github.com/credithub/jurischain#readme)
+the server. See the [main project README](https://github.com/iCheques/jurischain#readme)
 for the full design rationale.
 
 ## API
@@ -109,7 +109,7 @@ const { Jurischain } = require('@credithub/jurischain-node');
 
 | Member | Returns | Description |
 |---|---|---|
-| `new Jurischain(difficulty, seed)` | instance | Create a challenge. `difficulty` is an integer **1–255**; `seed` is a **non-empty string**. Throws `TypeError` / `RangeError` on bad input. |
+| `new Jurischain(difficulty, seed)` | instance | Create a challenge. `difficulty` is an integer **1–255**; `seed` is a **non-empty string** (up to 1024 UTF-8 bytes). Throws `TypeError` / `RangeError` on bad input. |
 | `solveStep()` | `boolean` | Run **one** PoW iteration (a single SHA3-256 hash). Returns `true` once the challenge is solved. Call it in a loop on the client. |
 | `readChallenge()` | `string` | The current state as a 64-character hex string. After the challenge is solved this is the **solution** to send to the server. |
 | `challengeResponse(response)` | `boolean` | Load a client's 64-character hex solution into the context so it can be checked. Throws `RangeError` if the length isn't exactly 64, or `Error` on invalid hex. |
@@ -211,7 +211,7 @@ Tune per endpoint: low for reads, high for sensitive or expensive operations.
 |---|---|---|
 | [`@credithub/jurischain`](https://www.npmjs.com/package/@credithub/jurischain) | Browser (WASM/ASM.js) | `npm install @credithub/jurischain` |
 | **`@credithub/jurischain-node`** | Node.js (native addon) | `npm install @credithub/jurischain-node` |
-| [`credithub/jurischain`](https://github.com/credithub/jurischain/tree/master/bindings/php) | PHP 8 extension | `pie install credithub/jurischain` |
+| [`credithub/jurischain`](https://github.com/iCheques/jurischain/tree/master/bindings/php) | PHP 8 extension | `pie install credithub/jurischain` |
 
 ## License
 

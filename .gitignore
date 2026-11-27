@@ -57,6 +57,8 @@ dkms.conf
 # Python Files
 env/
 stats/
+__pycache__/
+*.pyc
 
 # Build artifacts
 dist/

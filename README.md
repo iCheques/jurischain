@@ -221,7 +221,7 @@ python3 scripts/genstats.py       # Results saved to stats/
 ## Contributing
 
 ```bash
-git clone https://github.com/credithub/jurischain.git
+git clone https://github.com/iCheques/jurischain.git
 cd jurischain
 ./build.sh test                  # Verify everything passes
 ```
@@ -237,7 +237,7 @@ Publishing to npm is automated by [`release.yml`](.github/workflows/release.yml)
 3. CI builds the bundle, runs the browser test suite, publishes both packages
    (skipping any whose version is already on the registry) and creates a GitHub Release
 
-Requires the `NPM_TOKEN` repository secret (npm automation token with publish
+Requires the `NODE_AUTH_TOKEN` repository secret (npm automation token with publish
 rights to the `@credithub` scope).
 
 ## License

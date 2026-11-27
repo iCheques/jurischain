@@ -1,5 +1,5 @@
 # Stage 1: Build with Emscripten
-FROM emscripten/emsdk:3.1.51 AS builder
+FROM emscripten/emsdk:7.0.1 AS builder
 
 WORKDIR /src
 COPY include/ include/
@@ -9,8 +9,8 @@ COPY Makefile ./
 
 RUN make all
 
-# Stage 2: Serve with nginx
-FROM nginx:alpine AS serve
+# Stage 2: Serve with unprivileged nginx
+FROM nginxinc/nginx-unprivileged:alpine AS serve
 
 COPY --from=builder /src/dist/ /usr/share/nginx/html/dist/
 COPY examples/web/index.html /usr/share/nginx/html/

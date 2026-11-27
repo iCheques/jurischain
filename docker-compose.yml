@@ -1,7 +1,7 @@
 services:
   # ── Build: compiles C -> ASM.js and creates the bundle ──
   build:
-    image: emscripten/emsdk:3.1.51
+    image: emscripten/emsdk:7.0.1
     working_dir: /src
     volumes:
       - .:/src
@@ -25,7 +25,7 @@ services:
 
   # ── Test ASM.js CLI (Emscripten + Node) ──
   test-asm:
-    image: emscripten/emsdk:3.1.51
+    image: emscripten/emsdk:7.0.1
     working_dir: /src
     volumes:
       - .:/src

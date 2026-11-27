@@ -101,5 +101,5 @@ Publishing is automated by [`release.yml`](.github/workflows/release.yml):
 3. Merge to `master`, then tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
 4. CI builds, tests, publishes to npm, and creates a GitHub Release.
 
-Requires the `NPM_TOKEN` repository secret (an npm **automation** token with
+Requires the `NODE_AUTH_TOKEN` repository secret (an npm **automation** token with
 publish rights to the `@credithub` scope).
