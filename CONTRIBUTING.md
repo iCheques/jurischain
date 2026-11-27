@@ -101,5 +101,7 @@ Publishing is automated by [`release.yml`](.github/workflows/release.yml):
 3. Merge to `master`, then tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
 4. CI builds, tests, publishes to npm, and creates a GitHub Release.
 
-Requires the `NODE_AUTH_TOKEN` repository secret (an npm **automation** token with
-publish rights to the `@credithub` scope).
+Uses **npm Trusted Publishing (OIDC)** with provenance attestation — no static
+npm token secret is required. Configure `iCheques/jurischain` (`release.yml`) as
+a Trusted Publisher on npmjs.com for both `@credithub/jurischain` and
+`@credithub/jurischain-node`.
