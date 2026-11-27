@@ -11,6 +11,11 @@ and the PHP extension track their own version numbers, called out where relevant
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-11-26
+
+Ships `@credithub/jurischain` `1.1.4`, C core / PHP extension `1.1.4`, and
+`@credithub/jurischain-node` `1.0.4`.
+
 ### Added
 - PHP extension packaging for [PIE](https://github.com/php/pie), the PHP
   Foundation's official extension installer — `pie install credithub/jurischain`.
@@ -160,7 +165,8 @@ Initial public release as `bipbop/jurischain`.
   judiciary's need for open, self-hosted access control under
   [Lei 11.419, Art. 14](http://www.planalto.gov.br/ccivil_03/_Ato2004-2006/2006/Lei/L11419.htm#art14).
 
-[Unreleased]: https://github.com/iCheques/jurischain/compare/v1.1.3...HEAD
+[Unreleased]: https://github.com/iCheques/jurischain/compare/v1.1.4...HEAD
+[1.1.4]: https://github.com/iCheques/jurischain/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/iCheques/jurischain/compare/v1.1.0...v1.1.3
 [1.1.0]: https://github.com/iCheques/jurischain/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/iCheques/jurischain/releases/tag/v1.0.0
