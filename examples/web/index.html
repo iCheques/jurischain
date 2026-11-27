@@ -4,9 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>JurisChain – Proof-of-Work Captcha</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link href="./style.css" rel="stylesheet" />
   <style>
     /* ── Demo Page Layout ── */
@@ -146,7 +143,7 @@
 
     <!-- Footer -->
     <div class="demo-footer">
-      <a href="https://github.com/credithub/jurischain" target="_blank" rel="noopener">github.com/credithub/jurischain</a> · MIT License
+      <a href="https://github.com/iCheques/jurischain" target="_blank" rel="noopener noreferrer">github.com/iCheques/jurischain</a> · MIT License
     </div>
   </div>
 
@@ -154,11 +151,21 @@
   <script>
     (async function () {
       const widget = document.getElementById('jurischain-captcha');
-      const marker = widget.querySelector('.jurischain-captcha__marker');
-      const label  = widget.querySelector('.jurischain-captcha__label');
-      const sub    = widget.querySelector('.jurischain-captcha__sublabel');
       const panel  = document.getElementById('result-panel');
       const body   = document.getElementById('result-body');
+
+      function appendRow(labelText, valueText) {
+        const keyEl = document.createElement('span');
+        keyEl.className = 'key';
+        keyEl.textContent = labelText;
+        const valEl = document.createElement('span');
+        valEl.className = 'val';
+        valEl.textContent = valueText;
+        body.appendChild(keyEl);
+        body.appendChild(document.createTextNode('  '));
+        body.appendChild(valEl);
+        body.appendChild(document.createTextNode('\n'));
+      }
 
       try {
         const t0 = performance.now();
@@ -174,28 +181,15 @@
         });
         const elapsed = ((performance.now() - t0) / 1000).toFixed(2);
 
-        /* Update widget → success state */
-        marker.innerHTML =
-          '<div class="jurischain-captcha__checkbox--completed">' +
-            '<svg viewBox="0 0 28 28">' +
-              '<circle class="jc-check-circle" cx="14" cy="14" r="12"/>' +
-              '<polyline class="jc-check-mark" points="9 14.5 12.5 18 19 10.5"/>' +
-            '</svg>' +
-          '</div>';
-        label.textContent = 'Verified';
-        sub.textContent   = elapsed + 's · ' + result.length / 2 + ' bytes';
-
-        /* Show result panel */
-        body.innerHTML =
-          '<span class="key">hash</span>  <span class="val">' + result + '</span>\n' +
-          '<span class="key">time</span>  <span class="val">' + elapsed + 's</span>\n' +
-          '<span class="key">algo</span>  <span class="val">SHA3-256 (Keccak)</span>';
+        /* Show result panel (using safe textContent, no innerHTML interpolation) */
+        body.textContent = '';
+        appendRow('hash', result);
+        appendRow('time', elapsed + 's');
+        appendRow('algo', 'SHA3-256 (Keccak)');
         panel.classList.add('visible');
 
       } catch (err) {
-        label.textContent = 'Failed';
-        sub.textContent   = err.message || 'Unknown error';
-        marker.innerHTML  = '<div style="color:#ef4444;font-size:24px">✕</div>';
+        widget.textContent = 'Failed: ' + (err.message || 'Unknown error');
       }
     })();
   </script>

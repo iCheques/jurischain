@@ -89,4 +89,125 @@ try {
   console.log(`OK (caught: ${e.message})`);
 }
 
-console.log('\n=== All Node.js tests passed! ===');
+// Test 9: Input validation - non-finite & non-integer difficulty (no C++ UB)
+console.log('[9] Testing NaN / Infinity / float / out-of-range difficulty... ');
+for (const badDiff of [NaN, Infinity, -Infinity, 1.5, -1, 256, 1e20]) {
+  try {
+    new Jurischain(badDiff, 'TestSeed');
+    console.error(`FAIL: should have thrown for difficulty=${badDiff}`);
+    process.exit(1);
+  } catch (e) {
+    // expected
+  }
+}
+console.log('OK');
+
+// Test 10: Seed max length DoS protection (ASCII and multi-byte UTF-8)
+console.log('[10] Testing seed max length validation... ');
+for (const badSeed of ['A'.repeat(1025), '\u00E9'.repeat(600)]) {
+  try {
+    new Jurischain(10, badSeed);
+    console.error('FAIL: should have thrown for oversized seed');
+    process.exit(1);
+  } catch (e) {
+    // expected
+  }
+}
+console.log('OK');
+
+// Test 11: challengeResponse rejects whitespace, signs, prefixes & invalid hex without corrupting state
+console.log('[11] Testing challengeResponse strict hex validation & atomicity... ');
+const atomicCheck = new Jurischain(10, 'TestSeed');
+atomicCheck.challengeResponse(solution);
+for (const badHex of [
+  ' F' + '00'.repeat(31),
+  '+1' + '00'.repeat(31),
+  '-1' + '00'.repeat(31),
+  '0x' + '00'.repeat(31),
+  'GG' + '00'.repeat(31),
+  'ABCD',
+]) {
+  let threw = false;
+  try {
+    atomicCheck.challengeResponse(badHex);
+  } catch (e) {
+    threw = true;
+  }
+  if (!threw) {
+    console.error(`FAIL: challengeResponse accepted invalid hex "${badHex}"`);
+    process.exit(1);
+  }
+}
+if (atomicCheck.verify() !== true) {
+  console.error('FAIL: failed challengeResponse corrupted previously valid state');
+  process.exit(1);
+}
+console.log('OK');
+
+// Test 12: challengeResponse accepts lowercase hex
+console.log('[12] Testing challengeResponse accepts lowercase hex... ');
+const lc = new Jurischain(10, 'TestSeed');
+lc.challengeResponse(solution.toLowerCase());
+if (lc.verify() !== true) {
+  console.error('FAIL: lowercase hex should verify');
+  process.exit(1);
+}
+console.log('OK');
+
+// Test 13: Invalid `this` receiver throws TypeError instead of crashing
+console.log('[13] Testing invalid receiver guard... ');
+for (const method of ['verify', 'solveStep', 'readChallenge', 'challengeResponse']) {
+  let threw = false;
+  try {
+    Jurischain.prototype[method].call({}, solution);
+  } catch (e) {
+    threw = e instanceof TypeError;
+  }
+  if (!threw) {
+    console.error(`FAIL: ${method} did not throw TypeError on invalid receiver`);
+    process.exit(1);
+  }
+}
+console.log('OK');
+
+// Test 14: Tamper rejection (wrong seed & wrong difficulty)
+console.log('[14] Testing tamper rejection... ');
+const wrongSeed = new Jurischain(10, 'OtherSeed');
+wrongSeed.challengeResponse(solution);
+if (wrongSeed.verify() !== false) {
+  console.error('FAIL: wrong seed verified');
+  process.exit(1);
+}
+const wrongDiff = new Jurischain(24, 'TestSeed');
+wrongDiff.challengeResponse(solution);
+if (wrongDiff.verify() !== false) {
+  console.error('FAIL: wrong difficulty verified');
+  process.exit(1);
+}
+console.log('OK');
+
+// Test 15: Worker thread safety (context-aware addon)
+console.log('[15] Testing worker_threads compatibility... ');
+const { Worker } = require('worker_threads');
+const path = require('path');
+const bindingPath = path.resolve(__dirname, '../bindings/node');
+const worker = new Worker(`
+  const { parentPort, workerData } = require('worker_threads');
+  const { Jurischain } = require(workerData.bindingPath);
+  const c = new Jurischain(10, 'TestSeed');
+  while (!c.solveStep());
+  parentPort.postMessage(c.readChallenge());
+`, { eval: true, workerData: { bindingPath } });
+
+worker.on('message', (workerSolution) => {
+  if (workerSolution !== solution) {
+    console.error(`FAIL: worker solution mismatch: ${workerSolution} !== ${solution}`);
+    process.exit(1);
+  }
+  console.log('OK');
+  console.log('\n=== All Node.js tests passed! ===');
+});
+worker.on('error', (err) => {
+  console.error('FAIL: worker threw error:', err);
+  process.exit(1);
+});

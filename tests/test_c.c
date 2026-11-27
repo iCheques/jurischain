@@ -115,20 +115,60 @@ static void test_zero_difficulty(void) {
   /* d == 0 is a vacuous proof: with no required zero bits, ANY response
    * trivially satisfies the check. The core must reject it rather than
    * accept arbitrary input. gen() must also refuse to build such a
-   * challenge. */
+   * challenge and zero the caller's struct so uninitialized stack memory
+   * can never look valid. */
   jurischain_ctx_t c;
-  printf("zero-difficulty rejection:\n");
+  printf("zero-difficulty & invalid-gen rejection:\n");
 
-  /* gen() leaves the context untouched for d == 0; verifying a zeroed
-   * context must fail. */
-  memset(&c, 0, sizeof(c));
+  /* Even an uninitialized (0xAA-filled) struct must be zeroed by gen()
+   * when inputs are invalid (d == 0, empty seed, NULL seed). */
+  memset(&c, 0xAA, sizeof(c));
   jurischain_gen(&c, 0, "AnySeed", 7);
-  check(jurischain_verify(&c) == 0, "gen(d=0) does not build a valid challenge");
+  check(c.payload[HASH_LEN] == 0 && jurischain_verify(&c) == 0 && jurischain_try(&c) == 0,
+        "gen(d=0) zeroes uninitialized ctx and rejects verify/try");
+
+  memset(&c, 0xAA, sizeof(c));
+  jurischain_gen(&c, 8, "", 0);
+  check(c.payload[HASH_LEN] == 0 && jurischain_verify(&c) == 0,
+        "gen(inlen=0) zeroes uninitialized ctx and rejects verify");
+
+  memset(&c, 0xAA, sizeof(c));
+  jurischain_gen(&c, 8, NULL, 7);
+  check(c.payload[HASH_LEN] == 0 && jurischain_verify(&c) == 0,
+        "gen(seed=NULL) zeroes uninitialized ctx and rejects verify");
 
   /* Even a hand-crafted d == 0 payload must not verify. */
   memset(&c, 0, sizeof(c));
   c.payload[HASH_LEN] = 0;
   check(jurischain_verify(&c) == 0, "verify rejects d=0 directly");
+}
+
+static void test_golden_vector(void) {
+  /* Pin the exact PoW solution for (difficulty=10, seed="TestSeed") so any
+   * accidental change to the hashing or bit-checking contract fails loudly. */
+  jurischain_ctx_t c;
+  char hex[HASH_LEN * 2 + 1];
+  printf("golden PoW vector:\n");
+  jurischain_gen(&c, 10, "TestSeed", 8);
+  solve(&c);
+  to_hex(c.seed, HASH_LEN, hex);
+  check(strcmp(hex, "c19f75a5f960505dc5500675b0c6fd673b3047b040a17d47928599565e587065") == 0,
+        "TestSeed d=10 matches golden solution");
+}
+
+static void test_lifecycle_and_sha3_guards(void) {
+  jurischain_ctx_t *p = jurischain_init();
+  uint8_t md[HASH_LEN];
+  printf("lifecycle & sha3 guards:\n");
+  check(p != NULL && jurischain_verify(p) == 0, "init allocates zeroed ctx");
+  jurischain_destroy(&p);
+  check(p == NULL, "destroy nulls pointer");
+  jurischain_destroy(&p); /* idempotent on NULL */
+  jurischain_destroy(NULL);
+  check(sha3("abc", 3, NULL, HASH_LEN) == NULL, "sha3 rejects NULL output");
+  check(sha3(NULL, 3, md, HASH_LEN) == NULL, "sha3 rejects NULL non-empty input");
+  check(sha3("abc", 3, md, 0) == NULL, "sha3 rejects mdlen=0");
+  check(sha3("abc", 3, md, 100) == NULL, "sha3 rejects mdlen>=100");
 }
 
 int main(void) {
@@ -138,6 +178,8 @@ int main(void) {
   test_tamper();
   test_null_safety();
   test_zero_difficulty();
+  test_golden_vector();
+  test_lifecycle_and_sha3_guards();
 
   if (failures == 0) {
     printf("\n=== All core C tests passed! ===\n");

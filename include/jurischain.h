@@ -127,6 +127,8 @@ static inline void sha3_keccakf(uint64_t st[25]) {
 static inline int sha3_init(sha3_ctx_t *c, int mdlen) {
   int i = 0;
 
+  if (!c || mdlen <= 0 || mdlen * 2 >= 200) return 0;
+
   for (i = 0; i < 25; i++) c->st.q[i] = 0;
   c->mdlen = mdlen;
   c->rsiz = 200 - 2 * mdlen;
@@ -139,6 +141,8 @@ static inline int sha3_init(sha3_ctx_t *c, int mdlen) {
 static inline int sha3_update(sha3_ctx_t *c, const void *data, size_t len) {
   size_t i = 0;
   int j = 0;
+
+  if (!c || (len > 0 && !data)) return 0;
 
   j = c->pt;
   for (i = 0; i < len; i++) {
@@ -157,6 +161,8 @@ static inline int sha3_update(sha3_ctx_t *c, const void *data, size_t len) {
 static inline int sha3_final(void *md, sha3_ctx_t *c) {
   int i = 0;
 
+  if (!c || !md) return 0;
+
   c->st.b[c->pt] ^= 0x06;
   c->st.b[c->rsiz - 1] ^= 0x80;
   sha3_keccakf(c->st.q);
@@ -172,19 +178,22 @@ static inline int sha3_final(void *md, sha3_ctx_t *c) {
 static inline void *sha3(const void *in, size_t inlen, void *md, int mdlen) {
   sha3_ctx_t sha3;
 
+  if (!md || (inlen > 0 && !in)) return NULL;
+
   memset(&sha3, 0, sizeof(sha3));
 
-  sha3_init(&sha3, mdlen);
-  sha3_update(&sha3, in, inlen);
-  sha3_final(md, &sha3);
+  if (!sha3_init(&sha3, mdlen)) return NULL;
+  if (!sha3_update(&sha3, in, inlen)) return NULL;
+  if (!sha3_final(md, &sha3)) return NULL;
 
   return md;
 }
 
 static inline void jurischain_gen(jurischain_ctx_t *challenge, uint8_t d, const void *seed, size_t inlen) {
   uint8_t rand_hash[HASH_LEN] = { 0, };
-  if (!challenge || !seed || inlen == 0 || d == 0) return;
+  if (!challenge) return;
   memset(challenge, 0, sizeof(jurischain_ctx_t));
+  if (!seed || inlen == 0 || d == 0) return;
   sha3(seed, inlen, rand_hash, HASH_LEN);
   memcpy(challenge->seed, rand_hash, sizeof(rand_hash));
   memcpy(challenge->payload, rand_hash, sizeof(rand_hash));
@@ -247,7 +256,7 @@ static inline int jurischain_verify(jurischain_ctx_t *challenge) {
 
 static inline int jurischain_try(jurischain_ctx_t *challenge) {
   uint8_t rand_hash[HASH_LEN] = { 0, };
-  if (!challenge) return 0;
+  if (!challenge || challenge->payload[HASH_LEN] == 0) return 0;
   sha3(challenge->seed, HASH_LEN, rand_hash, HASH_LEN);
   memcpy(challenge->seed, rand_hash, HASH_LEN);
 

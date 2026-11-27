@@ -35,10 +35,10 @@ test-c:
 	./test_c
 
 js: $(DISTDIR)
-	$(EMCC) $(SRCDIR)/browser.c -o $(DISTDIR)/jurischain.js -s WASM=0 --memory-init-file 0 $(EMCCFLAGS)
+	$(EMCC) $(SRCDIR)/browser.c -o $(DISTDIR)/jurischain.js -s WASM=0 -s SINGLE_FILE=1 $(EMCCFLAGS)
 
 js-module: $(DISTDIR)
-	$(EMCC) $(SRCDIR)/browser.c -o $(DISTDIR)/jurischain-module.js -s WASM=0 --memory-init-file 0 -s MODULARIZE=1 -s 'EXPORT_NAME=_JurischainASM' $(EMCCFLAGS)
+	$(EMCC) $(SRCDIR)/browser.c -o $(DISTDIR)/jurischain-module.js -s WASM=0 -s SINGLE_FILE=1 -s MODULARIZE=1 -s 'EXPORT_NAME=_JurischainASM' $(EMCCFLAGS)
 
 bundle: js-module
 	@echo "Bundling $(DISTDIR)/jurischain-bundle.js..."

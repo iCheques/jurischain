@@ -1,14 +1,23 @@
 {
   "targets": [
     {
+      "target_name": "Jurischain",
       "include_dirs": [
         "<!(node -e \"require('nan')\")",
         ".",
-        "../../include",
+        "../../include"
       ],
-      "cflags": ["-Wstack-protector", "-Wall", "-g"],
-      "target_name": "Jurischain",
-      "sources": [ 'main.cpp' ]
+      "sources": [
+        "main.cpp"
+      ],
+      "cflags_cc": [
+        "-Wall"
+      ],
+      "xcode_settings": {
+        "WARNING_CFLAGS": [
+          "-Wall"
+        ]
+      }
     }
   ]
 }

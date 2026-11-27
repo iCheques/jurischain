@@ -21,17 +21,24 @@ jobs:
   publish-browser:
     name: Publish @credithub/jurischain (browser bundle)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: mymindstorm/setup-emsdk@v14
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: '20'
+          persist-credentials: false
+      - uses: mymindstorm/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
       - name: Build ASM.js bundle
         run: make all
       - name: Install dependencies
         run: npm ci
+      - name: Typecheck declarations
+        run: npm run typecheck
       - name: Transpile + minify bundle
         run: npm run minify
       - name: Install Playwright browsers
@@ -54,25 +61,30 @@ jobs:
         # Scripts are skipped because the build/minify/test steps above
         # already did everything prepublishOnly would do (and the full
         # playwright e2e project needs Docker, which is covered by CI).
-        run: npm publish --access public --ignore-scripts
+        run: npm publish --access public --provenance --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
 
   publish-node:
     name: Publish @credithub/jurischain-node (native addon)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: '20'
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
       - name: Build addon
-        run: npm install
+        run: npm ci
         working-directory: bindings/node
       - name: Run integration test
         run: node tests/test_node.js
-      - name: Copy header into package (prepack)
+      - name: Copy header & license into package (prepack)
         run: npm run prepack
         working-directory: bindings/node
       - name: Check if version is already published
@@ -91,7 +103,7 @@ jobs:
         if: steps.check.outputs.published == 'false'
         # prepack already ran above; --ignore-scripts keeps npm from
         # running the install script (node-gyp rebuild) during packing.
-        run: npm publish --access public --ignore-scripts
+        run: npm publish --access public --provenance --ignore-scripts
         working-directory: bindings/node
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
@@ -104,7 +116,9 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Create release with generated notes
         env:
           GH_TOKEN: ${{ github.token }}
