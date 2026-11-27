@@ -237,8 +237,10 @@ Publishing to npm is automated by [`release.yml`](.github/workflows/release.yml)
 3. CI builds the bundle, runs the browser test suite, publishes both packages
    (skipping any whose version is already on the registry) and creates a GitHub Release
 
-Requires the `NODE_AUTH_TOKEN` repository secret (npm automation token with publish
-rights to the `@credithub` scope).
+Uses **npm Trusted Publishing (OIDC)** with provenance attestation — no static
+npm token secret is required. Both packages (`@credithub/jurischain` and
+`@credithub/jurischain-node`) must have `iCheques/jurischain` (`release.yml`)
+configured as a Trusted Publisher on npmjs.com.
 
 ## License
 
